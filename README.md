@@ -95,8 +95,11 @@ A ready-to-paste Sections-style dashboard lives at
 2. Open the new dashboard, click the pencil (Edit), then the
    three-dot menu → **Raw configuration editor**.
 3. Paste the contents of `dashboards/spa.yaml`. Save.
-4. Search-and-replace `garden_spa` with your device slug if you named
-   your spa something else.
+4. **Search-and-replace `YOUR_SPA` with your entity slug.** To find
+   your slug: Developer Tools → States → filter by "balboa" — an
+   entity like `climate.garden_spa` means your slug is `garden_spa`;
+   one named `climate.balboa_spa_192_168_4_119` means your slug is
+   `balboa_spa_192_168_4_119`.
 
 Layout:
 
