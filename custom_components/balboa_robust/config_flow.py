@@ -139,7 +139,7 @@ async def _probe_once(host: str, port: int) -> str | None:
 
 
 async def _validate_connection(
-    host: str, port: int, budget_s: float = 90.0, gap_s: float = 5.0
+    host: str, port: int, budget_s: float = 180.0, gap_s: float = 5.0
 ) -> str | None:
     """Probe with retries so setup survives one typical stale window.
 
@@ -191,7 +191,17 @@ class BalboaRobustConfigFlow(ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
 
             error = await _validate_connection(host, port)
-            if error is None:
+            # Timeout/cannot_connect is expected for a known-flaky module in a
+            # long dead window — still create the entry so the connection
+            # manager can take over. Real config problems (unknown, no_spa_data
+            # indicating the port answers with garbage) still block.
+            if error in (None, "timeout", "cannot_connect"):
+                if error is not None:
+                    _LOGGER.warning(
+                        "balboa_robust: creating entry despite probe %s — "
+                        "manager will keep retrying in the background",
+                        error,
+                    )
                 return self.async_create_entry(
                     title=f"Balboa Spa ({host})",
                     data={CONF_HOST: host, CONF_PORT: port},

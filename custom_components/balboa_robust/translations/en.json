@@ -10,7 +10,8 @@
         "data_description": {
           "host": "The spa WiFi module IP, e.g. 192.168.1.100",
           "port": "Balboa protocol port (default 4257)"
-        }
+        },
+        "description": "Submit and leave this dialog open. The initial probe retries for up to 3 minutes so it can ride through the module's stale-socket windows. If the module is in a longer dead zone, setup will still succeed and the integration will keep trying in the background."
       }
     },
     "error": {

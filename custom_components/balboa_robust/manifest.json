@@ -1,13 +1,17 @@
 {
   "domain": "balboa_robust",
   "name": "Balboa Spa (Robust)",
-  "codeowners": ["@paw2paw"],
+  "codeowners": [
+    "@paw2paw"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/paw2paw/balboa_robust",
   "integration_type": "device",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/paw2paw/balboa_robust/issues",
-  "requirements": ["pybalboa>=1.0.5"],
-  "version": "0.2.0"
+  "requirements": [
+    "pybalboa>=1.0.5"
+  ],
+  "version": "0.2.2"
 }
