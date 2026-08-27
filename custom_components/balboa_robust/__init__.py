@@ -8,7 +8,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PORT, Platform
+from homeassistant.const import CONF_HOST, CONF_PORT, EntityCategory, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
@@ -90,6 +90,15 @@ _OBSOLETE_ENTITIES: set[tuple[str, str]] = {
     ("sensor", "last_fault_at"),
 }
 
+# (platform_domain, unique_id_suffix) -> new category. Used to move
+# already-registered entities that shipped in an earlier release with the
+# wrong category. HA fixes the "original" category on registration but never
+# retroactively updates existing rows, so we do it explicitly.
+_RECATEGORIZE: dict[tuple[str, str], EntityCategory | None] = {
+    ("sensor", "heat_state"): None,  # v0.2.5: was DIAGNOSTIC, now Sensors
+    ("sensor", "voltage"): None,     # v0.2.5: was DIAGNOSTIC, now Sensors
+}
+
 
 @callback
 def _remove_obsolete_entities(
@@ -112,11 +121,39 @@ def _remove_obsolete_entities(
             reg.async_remove(entity_id)
 
 
+@callback
+def _migrate_entity_categories(
+    hass: HomeAssistant, entry: BalboaRobustConfigEntry
+) -> None:
+    """Move entities to their current default category if unchanged since last release."""
+    reg = er.async_get(hass)
+    prefix = f"{entry.entry_id}_"
+    for entity_id, e in list(reg.entities.items()):
+        if e.config_entry_id != entry.entry_id:
+            continue
+        if not e.unique_id.startswith(prefix):
+            continue
+        suffix = e.unique_id[len(prefix):]
+        target = _RECATEGORIZE.get((e.domain, suffix), "unset")
+        if target == "unset":
+            continue
+        if e.entity_category == target:
+            continue
+        _LOGGER.info(
+            "Recategorizing %s: %s -> %s",
+            entity_id,
+            e.entity_category,
+            target,
+        )
+        reg.async_update_entity(entity_id, entity_category=target)
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: BalboaRobustConfigEntry
 ) -> bool:
     """Set up a spa from a config entry."""
     _remove_obsolete_entities(hass, entry)
+    _migrate_entity_categories(hass, entry)
     manager = SpaConnectionManager(
         host=entry.data[CONF_HOST],
         port=entry.data[CONF_PORT],
