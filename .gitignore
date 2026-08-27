@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtualenvs
+venv/
+.venv/
+env/
+
+# macOS
+.DS_Store
+
+# Soak test artifacts (large, per-run)
+soak/venv/
+soak/*.log
+soak/soak_events.csv
+soak/soak_*.png
+soak/soak_summary.txt
+soak/nohup.out
+
+# IDE / tooling
+.idea/
+.vscode/
+.claude/
+
+# HA runtime artifacts
+*.log

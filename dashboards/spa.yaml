@@ -1,0 +1,140 @@
+# Balboa Spa (Robust) — sample Sections dashboard.
+#
+# How to use:
+#   Settings → Dashboards → Add Dashboard → New dashboard from scratch
+#   Then edit the raw YAML (three-dots menu → Raw configuration editor)
+#   and paste the block below.
+#
+# Entities assume the default naming (device area "Garden", so entity ids look
+# like `climate.garden_spa`, `fan.garden_spa_pump_1`, etc.). Search-and-replace
+# `garden_spa` if your device name differs.
+title: Spa
+views:
+  - title: Spa
+    type: sections
+    max_columns: 3
+    sections:
+      # --- Main controls ---------------------------------------------------
+      - type: grid
+        column_span: 2
+        cards:
+          - type: heading
+            heading: Main
+          - type: thermostat
+            entity: climate.garden_spa
+            features:
+              - type: climate-hvac-modes
+          - type: tile
+            entity: select.garden_spa_temperature_range
+            name: Temperature range
+            features:
+              - type: select-options
+
+      # --- Pumps + light ---------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Pumps & light
+          - type: tile
+            entity: switch.garden_spa_all_pumps
+            name: All pumps
+            color: primary
+          - type: tile
+            entity: fan.garden_spa_pump_1
+            features:
+              - type: fan-preset-modes
+                style: dropdown
+          - type: tile
+            entity: fan.garden_spa_pump_2
+            features:
+              - type: fan-preset-modes
+                style: dropdown
+          - type: tile
+            entity: fan.garden_spa_pump_3
+            features:
+              - type: fan-preset-modes
+                style: dropdown
+          - type: tile
+            entity: light.garden_spa_light_1
+
+      # --- Filter cycles ---------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Filter cycles
+          - type: tile
+            entity: binary_sensor.garden_spa_filter_cycle_1_running
+            name: Cycle 1 running
+          - type: tile
+            entity: time.garden_spa_filter_cycle_1_start
+            name: Cycle 1 start
+          - type: tile
+            entity: time.garden_spa_filter_cycle_1_end
+            name: Cycle 1 end
+          - type: tile
+            entity: switch.garden_spa_filter_cycle_2_enabled
+            name: Cycle 2 enabled
+          - type: tile
+            entity: binary_sensor.garden_spa_filter_cycle_2_running
+            name: Cycle 2 running
+          - type: tile
+            entity: time.garden_spa_filter_cycle_2_start
+            name: Cycle 2 start
+          - type: tile
+            entity: time.garden_spa_filter_cycle_2_end
+            name: Cycle 2 end
+          - type: tile
+            entity: binary_sensor.garden_spa_circulation_pump_running
+            name: Circulation
+
+      # --- Status ---------------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Status
+          - type: tile
+            entity: binary_sensor.garden_spa_reachable
+          - type: tile
+            entity: sensor.garden_spa_heat_state
+          - type: tile
+            entity: select.garden_spa_heat_mode
+            features:
+              - type: select-options
+          - type: tile
+            entity: switch.garden_spa_pause_connection
+
+      # --- Connection health (diagnostic) --------------------------------
+      - type: grid
+        column_span: 2
+        cards:
+          - type: heading
+            heading: Connection health
+          - type: tile
+            entity: sensor.garden_spa_connection_state
+          - type: tile
+            entity: sensor.garden_spa_uptime_rolling
+          - type: tile
+            entity: sensor.garden_spa_connect_latency
+          - type: tile
+            entity: sensor.garden_spa_successful_connects
+          - type: tile
+            entity: sensor.garden_spa_failed_connects
+          - type: tile
+            entity: sensor.garden_spa_connections_lost
+          - type: history-graph
+            entities:
+              - sensor.garden_spa_connection_state
+              - sensor.garden_spa_uptime_rolling
+            hours_to_show: 24
+
+      # --- Fault log -----------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Fault log
+          - type: tile
+            entity: event.garden_spa_fault
+          - type: logbook
+            entities:
+              - event.garden_spa_fault
+            hours_to_show: 168  # 1 week

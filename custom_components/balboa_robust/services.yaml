@@ -1,0 +1,25 @@
+pause:
+  name: Pause spa connection
+  description: >-
+    Suspend all connection attempts to the spa without disabling any
+    entities. Use before draining/cleaning the tub or powering it off.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Optional. Limit to one spa; omit to pause all spas.
+      required: false
+      selector:
+        config_entry:
+          integration: balboa_robust
+
+resume:
+  name: Resume spa connection
+  description: Reconnect to the spa after a pause (fresh backoff).
+  fields:
+    entry_id:
+      name: Config entry
+      description: Optional. Limit to one spa; omit to resume all spas.
+      required: false
+      selector:
+        config_entry:
+          integration: balboa_robust

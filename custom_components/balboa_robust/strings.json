@@ -1,0 +1,98 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to your Balboa spa",
+        "data": {
+          "host": "Host (IP address)",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "The spa WiFi module IP, e.g. 192.168.1.100",
+          "port": "Balboa protocol port (default 4257)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not open a TCP connection to the spa.",
+      "timeout": "Connection attempt timed out.",
+      "no_spa_data": "TCP connected but the spa sent no data (zombie socket / module fault).",
+      "unknown": "Unexpected error — check the logs."
+    },
+    "abort": {
+      "already_configured": "This spa is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Connection resilience settings",
+        "data": {
+          "connect_timeout": "TCP connect timeout (s)",
+          "backoff_initial": "Initial retry delay (s)",
+          "backoff_max": "Maximum retry delay (s)",
+          "backoff_factor": "Backoff multiplier",
+          "heartbeat_interval": "Heartbeat check interval (s)",
+          "stale_after": "Declare link dead after silence of (s)",
+          "max_retries": "Max retry attempts (0 = forever)",
+          "auto_pause_after_failures": "Auto-pause after N failures (0 = never)",
+          "stable_for": "Mark 'reachable' only after stable for (s)",
+          "uptime_window": "Rolling uptime window (s)",
+          "reconnect_on_error": "Automatically reconnect when connection is lost"
+        },
+        "data_description": {
+          "connect_timeout": "How long one TCP attempt may take before it is abandoned.",
+          "backoff_initial": "Wait this long after the first failure.",
+          "backoff_max": "Retry delay never grows beyond this.",
+          "backoff_factor": "Each failure multiplies the delay by this factor.",
+          "heartbeat_interval": "How often the link is health-checked while connected.",
+          "stale_after": "The spa streams status ~1/s; silence beyond this means a zombie link.",
+          "max_retries": "After this many consecutive failures the spa is paused.",
+          "auto_pause_after_failures": "Pause automatically after repeated failures (0 disables).",
+          "stable_for": "binary_sensor.spa_reachable turns on only after the link has been healthy this long — gate automations on it.",
+          "uptime_window": "Window for the rolling 'Uptime' % sensor (e.g. 3600 = last hour). Charted by HA long-term statistics.",
+          "reconnect_on_error": "Turn off to pause instead of retrying when the link drops."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "reachable": { "name": "Reachable" },
+      "filter_cycle_1_running": { "name": "Filter cycle 1 running" },
+      "filter_cycle_2_running": { "name": "Filter cycle 2 running" },
+      "circulation_pump_running": { "name": "Circulation pump running" }
+    },
+    "climate": {
+      "spa": { "name": "Spa" }
+    },
+    "switch": {
+      "pause": { "name": "Pause connection" },
+      "all_pumps": { "name": "All pumps" },
+      "filter_cycle_2_enabled": { "name": "Filter cycle 2 enabled" }
+    },
+    "select": {
+      "heat_mode": { "name": "Heat mode" },
+      "temperature_range": { "name": "Temperature range" }
+    },
+    "time": {
+      "filter_cycle_start": { "name": "Filter cycle {index} start" },
+      "filter_cycle_end": { "name": "Filter cycle {index} end" }
+    },
+    "event": {
+      "fault": { "name": "Fault" }
+    },
+    "sensor": {
+      "connection_state": { "name": "Connection state" },
+      "connect_latency": { "name": "Connect latency" },
+      "connects_ok": { "name": "Successful connects" },
+      "connects_failed": { "name": "Failed connects" },
+      "connections_lost": { "name": "Connections lost" },
+      "current_uptime": { "name": "Current uptime" },
+      "current_downtime": { "name": "Current downtime" },
+      "uptime_ratio": { "name": "Uptime (rolling)" },
+      "heat_state": { "name": "Heat state" },
+      "voltage": { "name": "Line voltage" }
+    }
+  }
+}
