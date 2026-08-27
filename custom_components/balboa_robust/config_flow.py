@@ -138,41 +138,22 @@ async def _probe_once(host: str, port: int) -> str | None:
             pass
 
 
-async def _validate_connection(
-    host: str, port: int, budget_s: float = 180.0, gap_s: float = 5.0
-) -> str | None:
-    """Probe with retries so setup survives one typical stale window.
+async def _validate_connection(host: str, port: int) -> str | None:
+    """Single fast probe (~15s max).
 
-    The known-bad Balboa module is silent ~2/3 of the time; a single probe
-    frequently lands in a dead window. Retry for ~90s so the user's first
-    click succeeds regardless of cycle phase.
+    Setup no longer waits out the module's stale windows synchronously — that
+    was up to 3 minutes of spinner for the 50350's dead-zone case. Instead we
+    do one quick probe: if it succeeds, great, entities discover immediately;
+    if it times out or the host is unreachable, we still create the entry and
+    the connection manager takes over in the background. Only genuine config
+    errors (garbage on the port, unknown exceptions) block entry creation.
     """
-    loop = asyncio.get_running_loop()
-    deadline = loop.time() + budget_s
-    last: str | None = "cannot_connect"
-    attempt = 0
-    while True:
-        attempt += 1
-        last = await _probe_once(host, port)
-        if last is None:
-            _LOGGER.info(
-                "balboa_robust setup probe succeeded on attempt %d", attempt
-            )
-            return None
-        remaining = deadline - loop.time()
-        if remaining <= 0:
-            _LOGGER.warning(
-                "balboa_robust setup probe gave up after %d attempts: %s",
-                attempt,
-                last,
-            )
-            return last
-        _LOGGER.info(
-            "balboa_robust setup probe attempt %d returned %s; retrying",
-            attempt,
-            last,
-        )
-        await asyncio.sleep(min(gap_s, remaining))
+    result = await _probe_once(host, port)
+    if result is None:
+        _LOGGER.info("balboa_robust setup probe succeeded")
+    else:
+        _LOGGER.info("balboa_robust setup probe result: %s", result)
+    return result
 
 
 class BalboaRobustConfigFlow(ConfigFlow, domain=DOMAIN):

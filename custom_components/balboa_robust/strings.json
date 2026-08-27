@@ -11,7 +11,7 @@
           "host": "The spa WiFi module IP, e.g. 192.168.1.100",
           "port": "Balboa protocol port (default 4257)"
         },
-        "description": "Submit and leave this dialog open. The initial probe retries for up to 3 minutes so it can ride through the module's stale-socket windows. If the module is in a longer dead zone, setup will still succeed and the integration will keep trying in the background."
+        "description": "One quick connection test (~15s), then setup completes. If your spa's Wi-Fi module is currently asleep, the integration will still be added — it will keep retrying in the background and additional entities (pumps, lights, filter times) will appear the first time it connects successfully."
       }
     },
     "error": {
