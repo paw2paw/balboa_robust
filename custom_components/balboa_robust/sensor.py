@@ -151,7 +151,6 @@ SPA_SENSORS: tuple[SpaClientSensorDescription, ...] = (
     SpaClientSensorDescription(
         key="heat_state",
         translation_key="heat_state",
-        entity_category=EntityCategory.DIAGNOSTIC,
         device_class=SensorDeviceClass.ENUM,
         options=["off", "heating", "heat_waiting"],
         value_fn=lambda c: _enum_name(getattr(c, "heat_state", None)),
@@ -159,7 +158,6 @@ SPA_SENSORS: tuple[SpaClientSensorDescription, ...] = (
     SpaClientSensorDescription(
         key="voltage",
         translation_key="voltage",
-        entity_category=EntityCategory.DIAGNOSTIC,
         device_class=SensorDeviceClass.VOLTAGE,
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         state_class=SensorStateClass.MEASUREMENT,
