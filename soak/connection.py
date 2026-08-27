@@ -24,6 +24,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from datetime import datetime, timedelta, timezone
 
 # pybalboa is declared in manifest.json "requirements" so HA installs it before
 # this module loads. Importing at top means a missing dependency fails loudly
@@ -153,6 +154,7 @@ class SpaConnectionManager:
         self._paused = False
         self._attempt = 0
         self._backoff = self.config.backoff_initial
+        self.next_attempt_at: datetime | None = None
         self._listeners: list[EventCallback] = []
         self.stats.disconnected_since = time.monotonic()
         self.stats.record_transition(False)
@@ -166,6 +168,17 @@ class SpaConnectionManager:
     @property
     def connected(self) -> bool:
         return self.state is ManagerState.CONNECTED
+
+    @property
+    def current_backoff_s(self) -> float:
+        """Seconds the manager will wait before the next connection attempt.
+
+        Grows with each consecutive failure (backoff_initial * factor^N,
+        capped at backoff_max). Resets to backoff_initial on a successful
+        connect. Meaningful only while state is BACKOFF; otherwise it's
+        the delay that *will* apply if the next attempt fails.
+        """
+        return self._backoff
 
     @property
     def reachable(self) -> bool:
@@ -309,11 +322,15 @@ class SpaConnectionManager:
 
             # --- BACKOFF before next attempt -------------------------------
             self._set_state(ManagerState.BACKOFF)
+            self.next_attempt_at = datetime.now(timezone.utc) + timedelta(
+                seconds=self._backoff
+            )
             self._emit("backoff", backoff_s=self._backoff, attempt=self._attempt)
             try:
                 await asyncio.wait_for(self._stop.wait(), timeout=self._backoff)
             except asyncio.TimeoutError:
                 pass  # backoff elapsed, loop retries
+            self.next_attempt_at = None
             self._backoff = min(
                 self._backoff * self.config.backoff_factor,
                 self.config.backoff_max,

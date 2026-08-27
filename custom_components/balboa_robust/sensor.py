@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -99,6 +100,23 @@ SENSORS: tuple[SpaSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=0,
         value_fn=lambda m: round(m.stats.current_downtime_s),
+    ),
+    SpaSensorDescription(
+        key="current_backoff",
+        translation_key="current_backoff",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=lambda m: round(m.current_backoff_s, 1),
+    ),
+    SpaSensorDescription(
+        key="next_attempt_at",
+        translation_key="next_attempt_at",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda m: m.next_attempt_at,
     ),
     SpaSensorDescription(
         key="uptime_ratio",

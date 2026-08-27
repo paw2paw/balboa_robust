@@ -92,6 +92,8 @@
       "current_uptime": { "name": "Current uptime" },
       "current_downtime": { "name": "Current downtime" },
       "uptime_ratio": { "name": "Uptime (rolling)" },
+      "current_backoff": { "name": "Current backoff delay" },
+      "next_attempt_at": { "name": "Next connection attempt" },
       "heat_state": { "name": "Heat state" },
       "voltage": { "name": "Line voltage" }
     }
