@@ -18,6 +18,21 @@
 
 > **TL;DR** — I retrofitted a 50350 to my 3-year-old spa; the module goes silent 2/3 of the time; the stock integration crashed HA; I measured it, characterised it, and wrapped it in a supervised connection manager. Install via HACS as a custom repository → your spa becomes reliably controllable again.
 
+## What it does / doesn't do
+
+**Does:**
+- **Stops HA crashing / leaking memory** when the module hangs its socket (root cause of most user pain).
+- **Gives you maximum HA control during the ~34% of the time the module is actually reachable** — commands go through cleanly, entities update promptly.
+- Detects zombie sockets, tears them down, backs off, and reconnects — automatically, silently, without your Lovelace filling up with `Unavailable` badges forever.
+- Exposes the module's real behaviour as first-class sensors so you can *see* the drops instead of guessing (`connection_state`, `uptime_rolling`, `next_attempt_at`, `connections_lost`, fault event).
+
+**Does NOT:**
+- **Fix the 50350's firmware.** The module still goes silent for 30 s to 100+ min at a time. Nothing running on your HA can change that — the bug is on the other side of the wire.
+- Improve your effective uptime beyond what the module allows.
+- Replace the need for a hardware bridge (RS485/ESP32) if you want *true* reliability — see [alternatives](#alternatives).
+
+Think of it as a **shock absorber**: the road is still bumpy, but your car stays on it and the passengers don't get thrown out.
+
 ## Why this exists
 
 Built around one specific piece of bad hardware: the **Balboa Wi-Fi module part number 50350** ("BWA Wi-Fi"), commonly paired with `BW6013X1`-series spa control systems and often retrofitted to any Balboa BP-controlled spa. Observable behaviour (measured over a 14.75-hour soak against a real unit at signal strength −44 dBm, i.e. *excellent* Wi-Fi):
