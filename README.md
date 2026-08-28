@@ -2,41 +2,44 @@
   <img src="custom_components/balboa_robust/brand/logo@2x.png" alt="Balboa Spa (Robust)" width="480">
 </p>
 
+<p align="center">
+  <a href="https://github.com/paw2paw/balboa_robust/releases"><img src="https://img.shields.io/github/v/release/paw2paw/balboa_robust?sort=semver" alt="Release"></a>
+  <a href="https://github.com/paw2paw/balboa_robust/blob/main/LICENSE"><img src="https://img.shields.io/github/license/paw2paw/balboa_robust" alt="License"></a>
+  <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS Custom"></a>
+  <img src="https://img.shields.io/badge/Home%20Assistant-2024.1%2B-blue.svg" alt="HA 2024.1+">
+  <img src="https://img.shields.io/badge/module-BWA%2050350-orange" alt="BWA 50350">
+</p>
+
 # Balboa Spa (Robust)
 
-Home Assistant custom integration for Balboa spas whose Wi-Fi module
-misbehaves — stale sockets, silent drop-outs, module going dark for
-30-second bursts (or 100-minute overnight zones). Wraps
-[`pybalboa`](https://github.com/garbled1/pybalboa) with a supervised
-connection manager and exposes clean, HA-native entities on top.
+**Home Assistant integration for Balboa spa Wi-Fi modules that keep dropping the connection** — specifically the aftermarket **BWA Wi-Fi Module (part 50350)** that many owners retrofit to older tubs. Wraps [`pybalboa`](https://github.com/garbled1/pybalboa) with a supervised connection manager (heartbeat, zombie-socket detection, exponential backoff, auto-reconnect) and exposes clean, HA-native entities on top.
 
-**Not a replacement for the stock `balboa` integration** — if your module
-is well-behaved, keep using stock. This one only earns its keep when
-you're getting `stale_30s` disconnects, hangs during setup, or a
-`sensor.spa_*` that reports `Unavailable` several times a day.
+**Not a replacement for the stock `balboa` integration** — if your module is well-behaved, keep using stock. This one only earns its keep when you're getting `stale_30s` disconnects, hangs during setup, or a `sensor.spa_*` that reports `Unavailable` several times a day.
+
+> **TL;DR** — I retrofitted a 50350 to my 3-year-old spa; the module goes silent 2/3 of the time; the stock integration crashed HA; I measured it, characterised it, and wrapped it in a supervised connection manager. Install via HACS as a custom repository → your spa becomes reliably controllable again.
 
 ## Why this exists
 
-Built around one specific piece of bad hardware: the **Balboa Wi-Fi module
-part number 50350** ("BWA Wi-Fi"), commonly paired with `BW6013X1`-series
-spa control systems. Observable behaviour (measured over a 14.75-hour soak
-against a real unit at signal strength −44 dBm, i.e. *excellent* Wi-Fi):
+Built around one specific piece of bad hardware: the **Balboa Wi-Fi module part number 50350** ("BWA Wi-Fi"), commonly paired with `BW6013X1`-series spa control systems and often retrofitted to any Balboa BP-controlled spa. Observable behaviour (measured over a 14.75-hour soak against a real unit at signal strength −44 dBm, i.e. *excellent* Wi-Fi):
 
 * **Effective uptime: 33.85 %** — the module is unreachable 2/3 of the time.
-* **41 of 42 disconnects were "stale sockets"** — the module accepts a
-  TCP connection, streams data for ~30 seconds, then *goes silent without
-  closing the socket*. To a naïve client the connection looks fine; no
-  data ever arrives again.
+* **41 of 42 disconnects were "stale sockets"** — the module accepts a TCP connection, streams data for ~30 seconds, then *goes silent without closing the socket*. To a naïve client the connection looks fine; no data ever arrives again.
 * **Overnight silent windows** — the peak was **104 minutes** at 05:17.
-* **Not a Wi-Fi problem.** RSSI −44 dBm rules out interference; it's the
-  module firmware.
+* **Not a Wi-Fi problem.** RSSI −44 dBm rules out interference; it's the module firmware.
 
-The stock `pybalboa`-based integration reads from those stale sockets
-until timeout, leaking memory and — in some cases — crashing Home
-Assistant. This project fixes it in software (heartbeat-based staleness
-detection, zombie-socket rejection, exponential backoff, supervised
-reconnect) so the module remains usable while you decide whether to
-replace it.
+The stock `pybalboa`-based integration reads from those stale sockets until timeout, leaking memory and — in some cases — crashing Home Assistant. This project fixes it in software (heartbeat-based staleness detection, zombie-socket rejection, exponential backoff, supervised reconnect) so the module remains usable while you decide whether to replace it.
+
+## Alternatives
+
+Not the only way to skin this cat — worth knowing:
+
+- **[Stock HA `balboa` integration](https://www.home-assistant.io/integrations/balboa/)** — if your module is healthy, use this.
+- **[garbled1/balboa_homeassistan](https://github.com/garbled1/balboa_homeassistan)** — original HACS integration by the pybalboa author.
+- **[natekspencer/hacs-balboa](https://github.com/natekspencer/hacs-balboa)** — HACS fork with additional entities.
+- **[plmilord/Hass.io-custom-component-spaclient](https://github.com/plmilord/Hass.io-custom-component-spaclient)** — alternative custom component.
+- **[HyperActiveJ/SundanceJacuzzi_HomeAssistant_TCP_RS485](https://github.com/HyperActiveJ/SundanceJacuzzi_HomeAssistant_TCP_RS485)** — bypasses the flaky Wi-Fi module entirely by wiring the spa's RS485 bus to an ESP32 serial-over-TCP bridge. **Hardware fix.** If you're willing to open the spa panel and wire a serial adapter, this is arguably the most reliable long-term solution.
+
+This project is the **software** workaround: keeps the flaky 50350 usable without hardware modification.
 
 **If you own a 50350 module and Home Assistant reports your spa as
 "Unavailable" for hours at a time, this is for you.** Long-term the fix
