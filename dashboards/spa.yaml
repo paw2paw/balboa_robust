@@ -2,27 +2,42 @@
 #
 # How to use:
 #   1. Settings → Dashboards → Add Dashboard → New dashboard from scratch.
-#   2. Open the new dashboard, click the pencil (Edit), then the three-dot menu
-#      → Raw configuration editor.
+#   2. Open the new dashboard, click the pencil (Edit), then the three-dot
+#      menu → Raw configuration editor.
 #   3. Paste this file.
-#   4. Search-and-replace `YOUR_SPA` with your entity slug. To find your slug:
-#      Developer Tools → States → filter by "balboa" — an entity like
-#      `climate.garden_spa` means your slug is `garden_spa`; one named
-#      `climate.balboa_spa_192_168_4_119` means your slug is
-#      `balboa_spa_192_168_4_119`.
+#   4. Search-and-replace `YOUR_SPA` with your entity slug. To find your
+#      slug: Developer Tools → States → filter by "balboa" — an entity
+#      like `climate.garden_spa` means your slug is `garden_spa`.
 #   5. Save. Done.
+#
+# Design notes (0.3.0):
+#   • "Standard spa items" (values from the spa module) render *above*
+#     "our" integration-synthesised items in the Diagnostic section, per
+#     the plan's section-ordering rule.
+#   • Optional entities (aux/mister, filter durations, wifi_state) are
+#     included; delete the tiles for those your module doesn't expose or
+#     the card will show "unavailable".
+#   • Uses only stock HA cards (no HACS card dependencies).
+
 title: Spa
 views:
   - title: Spa
     type: sections
     max_columns: 3
+    dense_section_placement: true
     sections:
-      # --- Main controls ---------------------------------------------------
+      # ================================================================
+      # CONTROLS
+      # ================================================================
+
+      # --- Main climate ---------------------------------------------------
       - type: grid
         column_span: 2
         cards:
           - type: heading
             heading: Main
+            heading_style: title
+            icon: mdi:hot-tub
           - type: thermostat
             entity: climate.YOUR_SPA
             features:
@@ -30,18 +45,28 @@ views:
           - type: tile
             entity: select.YOUR_SPA_temperature_range
             name: Temperature range
+            icon: mdi:thermometer-lines
+            features:
+              - type: select-options
+          - type: tile
+            entity: select.YOUR_SPA_heat_mode
+            name: Heat mode
+            icon: mdi:thermostat
             features:
               - type: select-options
 
-      # --- Pumps + light ---------------------------------------------------
+      # --- Pumps, blower, light, aux, mister ----------------------------
       - type: grid
         cards:
           - type: heading
             heading: Pumps & light
+            heading_style: title
+            icon: mdi:pump
           - type: tile
             entity: switch.YOUR_SPA_all_pumps
             name: All pumps
             color: primary
+            icon: mdi:pump
           - type: tile
             entity: fan.YOUR_SPA_pump_1
             features:
@@ -57,17 +82,33 @@ views:
             features:
               - type: fan-preset-modes
                 style: dropdown
+          # --- optional; delete if your module doesn't expose them ------
+          - type: tile
+            entity: fan.YOUR_SPA_blower_1
+            features:
+              - type: fan-preset-modes
+                style: dropdown
           - type: tile
             entity: light.YOUR_SPA_light_1
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: switch.YOUR_SPA_aux_1
+            name: Aux 1
+          - type: tile
+            entity: switch.YOUR_SPA_mister_1
+            name: Mister 1
 
-      # --- Filter cycles ---------------------------------------------------
+      # --- Filter cycles ------------------------------------------------
       - type: grid
         cards:
           - type: heading
             heading: Filter cycles
+            heading_style: title
+            icon: mdi:filter
           - type: tile
             entity: binary_sensor.YOUR_SPA_filter_cycle_1_running
-            name: Cycle 1 running
+            name: Cycle 1
           - type: tile
             entity: time.YOUR_SPA_filter_cycle_1_start
             name: Cycle 1 start
@@ -75,11 +116,14 @@ views:
             entity: time.YOUR_SPA_filter_cycle_1_end
             name: Cycle 1 end
           - type: tile
+            entity: sensor.YOUR_SPA_filter_1_duration
+            name: Cycle 1 duration
+          - type: tile
             entity: switch.YOUR_SPA_filter_cycle_2_enabled
             name: Cycle 2 enabled
           - type: tile
             entity: binary_sensor.YOUR_SPA_filter_cycle_2_running
-            name: Cycle 2 running
+            name: Cycle 2
           - type: tile
             entity: time.YOUR_SPA_filter_cycle_2_start
             name: Cycle 2 start
@@ -87,61 +131,154 @@ views:
             entity: time.YOUR_SPA_filter_cycle_2_end
             name: Cycle 2 end
           - type: tile
+            entity: sensor.YOUR_SPA_filter_2_duration
+            name: Cycle 2 duration
+          - type: tile
             entity: binary_sensor.YOUR_SPA_circulation_pump_running
             name: Circulation
 
-      # --- Status ---------------------------------------------------------
+      # ================================================================
+      # SENSORS (spa-native)
+      # ================================================================
       - type: grid
         cards:
           - type: heading
             heading: Status
+            heading_style: title
+            icon: mdi:information-outline
           - type: tile
             entity: binary_sensor.YOUR_SPA_reachable
+            icon: mdi:lan-connect
+          - type: tile
+            entity: sensor.YOUR_SPA_spa_state
+            name: Spa state
           - type: tile
             entity: sensor.YOUR_SPA_heat_state
+            name: Heat state
           - type: tile
-            entity: select.YOUR_SPA_heat_mode
-            features:
-              - type: select-options
-          - type: tile
-            entity: switch.YOUR_SPA_pause_connection
+            entity: sensor.YOUR_SPA_voltage
+            name: Line voltage
 
-      # --- Connection health (diagnostic) --------------------------------
+      # ================================================================
+      # DIAGNOSTIC
+      # ================================================================
+
+      # --- Spa-native diagnostics (from the module) --------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Spa diagnostics
+            heading_style: title
+            icon: mdi:hot-tub
+          - type: tile
+            entity: sensor.YOUR_SPA_spa_time
+            name: Spa time
+            icon: mdi:clock-outline
+          - type: tile
+            entity: sensor.YOUR_SPA_wifi_state
+            name: Wi-Fi state
+            icon: mdi:wifi
+          - type: tile
+            entity: sensor.YOUR_SPA_clock_offset
+            name: Clock offset
+            icon: mdi:clock-alert-outline
+          - type: tile
+            tap_action:
+              action: perform-action
+              perform_action: balboa_robust.sync_spa_clock
+            name: Sync spa clock (HA -> spa)
+            icon: mdi:clock-check-outline
+            color: primary
+
+      # --- Our connection health ---------------------------------------
       - type: grid
         column_span: 2
         cards:
           - type: heading
             heading: Connection health
+            heading_style: title
+            icon: mdi:chart-timeline-variant
           - type: tile
             entity: sensor.YOUR_SPA_connection_state
           - type: tile
-            entity: sensor.YOUR_SPA_uptime_rolling
+            entity: sensor.YOUR_SPA_uptime_ratio
+            name: Uptime (rolling)
           - type: tile
             entity: sensor.YOUR_SPA_connect_latency
           - type: tile
-            entity: sensor.YOUR_SPA_current_backoff_delay
+            entity: sensor.YOUR_SPA_current_backoff
+            name: Current backoff
           - type: tile
-            entity: sensor.YOUR_SPA_next_connection_attempt
+            entity: sensor.YOUR_SPA_next_attempt_at
+            name: Next attempt
           - type: tile
-            entity: sensor.YOUR_SPA_successful_connects
+            entity: sensor.YOUR_SPA_current_uptime
+            name: Current uptime
           - type: tile
-            entity: sensor.YOUR_SPA_failed_connects
+            entity: sensor.YOUR_SPA_current_downtime
+            name: Current downtime
+          - type: tile
+            entity: sensor.YOUR_SPA_connects_ok
+            name: Connects OK
+          - type: tile
+            entity: sensor.YOUR_SPA_connects_failed
+            name: Connects failed
           - type: tile
             entity: sensor.YOUR_SPA_connections_lost
+            name: Connections lost
+          - type: tile
+            entity: switch.YOUR_SPA_pause_connection
+            name: Pause connection
           - type: history-graph
             entities:
               - sensor.YOUR_SPA_connection_state
-              - sensor.YOUR_SPA_uptime_rolling
+              - sensor.YOUR_SPA_uptime_ratio
+              - sensor.YOUR_SPA_connect_latency
             hours_to_show: 24
 
-      # --- Fault log -----------------------------------------------------
+      # --- Long-term statistics ----------------------------------------
       - type: grid
+        column_span: 2
+        cards:
+          - type: heading
+            heading: Long-term statistics
+            heading_style: title
+            icon: mdi:chart-bar
+          - type: statistics-graph
+            title: Rolling uptime %
+            chart_type: line
+            period: hour
+            days_to_show: 7
+            stat_types:
+              - mean
+              - min
+              - max
+            entities:
+              - sensor.YOUR_SPA_uptime_ratio
+          - type: statistics-graph
+            title: Connect latency (ms)
+            chart_type: line
+            period: hour
+            days_to_show: 7
+            stat_types:
+              - mean
+              - max
+            entities:
+              - sensor.YOUR_SPA_connect_latency
+
+      # ================================================================
+      # FAULT LOG
+      # ================================================================
+      - type: grid
+        column_span: 2
         cards:
           - type: heading
             heading: Fault log
+            heading_style: title
+            icon: mdi:alert-circle-outline
           - type: tile
             entity: event.YOUR_SPA_fault
           - type: logbook
             entities:
               - event.YOUR_SPA_fault
-            hours_to_show: 168  # 1 week
+            hours_to_show: 168 # 1 week
