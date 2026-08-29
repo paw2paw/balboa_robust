@@ -10,6 +10,32 @@ exhibits stale-socket disconnects, 30-second silent windows, and
 overnight dead zones of 100 min+. Measured uptime on a real unit:
 **33.85 %**. See [README](README.md#why-this-exists) for the full story.
 
+## [0.3.2] – 2026-08-29
+
+Dashboard-and-docs polish release. No code changes, no entity changes.
+
+### Changed
+- Example dashboard `dashboards/spa.yaml`:
+  - Fault card renamed *Last Spa Error* → **Last Spa Fault Report**.
+  - Date format now `%a %b %d, %H:%M` (weekday + comma) rendered in
+    local timezone via `timestamp_custom(..., true)`.
+  - Fault card structure switched from `>` folded to `|` literal so YAML
+    never eats a space inside the format string. When/Fault are on
+    separate lines for readability.
+  - Reachable tile in the Spa hero uses `color: state` and no icon
+    override — HA auto-picks green/red and swaps
+    `lan-connect`/`lan-disconnect` per state.
+- `README.md`: header logo now uses an absolute `raw.githubusercontent.com`
+  URL so it renders on the HACS repository page (relative paths only work
+  when viewed via github.com).
+
+### Not shipped
+- Attempted a centered uptime title via inline `<h3 align="center">`;
+  HA's markdown sanitizer strips `align=` and `style=`, so it doesn't
+  render. Left as plain left-aligned markdown. Real centering needs
+  `type: heading` (no template support) or `card-mod` (HACS dep we're
+  avoiding).
+
 ## [0.3.1] – 2026-08-29
 
 Small dashboard-quality release, all discovered while pointing the
