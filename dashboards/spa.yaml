@@ -269,9 +269,17 @@ views:
             heading: Connection health
             heading_style: title
             icon: mdi:chart-timeline-variant
+          # Dynamic window label — reads the `window_human` attribute
+          # exposed by the uptime sensor (added in 0.3.1). Update the
+          # rolling window under Settings -> Devices -> Balboa Spa (Robust)
+          # -> Configure; the label follows automatically.
+          - type: markdown
+            content: >
+              ### Uptime — last {{
+              state_attr('sensor.YOUR_SPA_uptime_rolling', 'window_human')
+              or '1 h' }} (rolling)
           - type: gauge
             entity: sensor.YOUR_SPA_uptime_rolling
-            name: Uptime (rolling %)
             min: 0
             max: 100
             severity:

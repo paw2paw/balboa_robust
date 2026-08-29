@@ -33,6 +33,18 @@ class SpaSensorDescription(SensorEntityDescription):
     """Sensor description with a value extractor."""
 
     value_fn: Callable[[SpaConnectionManager], Any]
+    attributes_fn: Callable[[SpaConnectionManager], dict[str, Any]] | None = None
+
+
+def _format_window(seconds: float) -> str:
+    """Human-readable rolling-window label ('1 h', '30 min', '24 h', '7 d')."""
+    if seconds >= 86400 and seconds % 86400 == 0:
+        return f"{int(seconds // 86400)} d"
+    if seconds >= 3600 and seconds % 3600 == 0:
+        return f"{int(seconds // 3600)} h"
+    if seconds >= 60:
+        return f"{int(seconds // 60)} min"
+    return f"{int(seconds)} s"
 
 
 SENSORS: tuple[SpaSensorDescription, ...] = (
@@ -130,6 +142,12 @@ SENSORS: tuple[SpaSensorDescription, ...] = (
             if (r := m.stats.uptime_ratio(m.config.uptime_window)) is not None
             else None
         ),
+        # Expose the configured window so dashboards can label the gauge
+        # dynamically instead of hard-coding '1h' etc.
+        attributes_fn=lambda m: {
+            "window_seconds": int(m.config.uptime_window),
+            "window_human": _format_window(m.config.uptime_window),
+        },
     ),
 )
 
@@ -311,6 +329,17 @@ class SpaDiagnosticSensor(CoordinatorEntity[SpaCoordinator], SensorEntity):
     @property
     def native_value(self) -> Any:
         return self.entity_description.value_fn(self.coordinator.manager)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        fn = self.entity_description.attributes_fn
+        if fn is None:
+            return None
+        try:
+            attrs = fn(self.coordinator.manager)
+        except Exception:  # noqa: BLE001
+            return None
+        return attrs or None
 
 
 class SpaClientSensor(CoordinatorEntity[SpaCoordinator], SensorEntity):

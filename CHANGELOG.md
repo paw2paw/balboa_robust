@@ -10,6 +10,40 @@ exhibits stale-socket disconnects, 30-second silent windows, and
 overnight dead zones of 100 min+. Measured uptime on a real unit:
 **33.85 %**. See [README](README.md#why-this-exists) for the full story.
 
+## [0.3.1] – 2026-08-29
+
+Small dashboard-quality release, all discovered while pointing the
+example dashboard at a real 0.3.0 install.
+
+### Added
+- `sensor.<slug>_uptime_rolling` now exposes two attributes:
+  `window_seconds` (int) and `window_human` (e.g. `"1 h"`, `"24 h"`).
+  Dashboards can label the gauge dynamically from the configured
+  rolling window instead of hard-coding "1 h" — see the updated example
+  in `dashboards/spa.yaml`.
+
+### Fixed
+- Example dashboard `dashboards/spa.yaml` had six broken entity IDs. HA
+  auto-generates entity_ids from the *slugified friendly name*, not the
+  code's `key`. The following are the actual entity_id suffixes and are
+  now used in the example:
+  - `uptime_ratio` → `sensor.<slug>_uptime_rolling`
+  - `current_backoff` → `sensor.<slug>_current_backoff_delay`
+  - `next_attempt_at` → `sensor.<slug>_next_connection_attempt`
+  - `connects_ok` → `sensor.<slug>_successful_connects`
+  - `connects_failed` → `sensor.<slug>_failed_connects`
+  - `voltage` → `sensor.<slug>_line_voltage`
+- Example dashboard reorganised for 3 views (Spa / Setup / Health), a
+  conditional "Last Spa Error" markdown card at the end of the Spa
+  view (invisible until a fault fires), and a colour-coded uptime
+  gauge with dynamic-window label.
+
+### Migration notes
+- No breaking changes. Existing installs upgrade cleanly. The new
+  attribute is additive.
+- If you copied the previous `dashboards/spa.yaml` verbatim before this
+  release, either re-copy or apply the six substitutions above by hand.
+
 ## [0.3.0] – 2026-08-29
 
 Entity expansion + long-standing Heat Mode / Temperature Range bug fix.
