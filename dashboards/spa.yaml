@@ -272,14 +272,12 @@ views:
           # Dynamic window label — reads the `window_human` attribute
           # exposed by the uptime sensor (added in 0.3.1). Update the
           # rolling window under Settings -> Devices -> Balboa Spa (Robust)
-          # -> Configure; the label follows automatically. Centered via
-          # inline HTML because HA's markdown card doesn't have a
-          # native alignment prop.
+          # -> Configure; the label follows automatically.
           - type: markdown
             content: >
-              <h3 align="center">Uptime — last {{
+              ### Uptime — last {{
               state_attr('sensor.YOUR_SPA_uptime_rolling', 'window_human')
-              or '1 h' }} (rolling)</h3>
+              or '1 h' }} (rolling)
           - type: gauge
             entity: sensor.YOUR_SPA_uptime_rolling
             min: 0
