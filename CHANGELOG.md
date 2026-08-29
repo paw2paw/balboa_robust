@@ -10,6 +10,50 @@ exhibits stale-socket disconnects, 30-second silent windows, and
 overnight dead zones of 100 min+. Measured uptime on a real unit:
 **33.85 %**. See [README](README.md#why-this-exists) for the full story.
 
+## [0.3.0] – 2026-08-29
+
+Entity expansion + long-standing Heat Mode / Temperature Range bug fix.
+See [PLAN.md](PLAN.md) for the full design doc; highlights:
+
+### Fixed
+- **Heat mode and Temperature range selects now register.** The
+  `SpaControlSelect` constructor rejected the `category` kwarg passed
+  by the discovery code, so both entities silently failed to appear.
+  Existing installs get them automatically on first startup after
+  upgrade — no reconfig needed.
+
+### Added
+- `switch.<slug>_aux_N` and `switch.<slug>_mister_N` — one per aux /
+  mister control the spa module exposes. Absent on modules without them.
+- `sensor.<slug>_spa_state` — current spa mode (running / initializing /
+  hold / test / ab-temps).
+- `sensor.<slug>_wifi_state` (Diagnostic) — the Balboa module's own view
+  of its Wi-Fi link (ok / prime / hold / panel / startup / not-comm).
+- `sensor.<slug>_spa_time` and `sensor.<slug>_clock_offset` (Diagnostic)
+  — the spa's internal clock and how far it has drifted from HA.
+- `sensor.<slug>_filter_{1,2}_duration` — filter-cycle length in
+  minutes, registered when the module has one configured.
+- **New service `balboa_robust.sync_spa_clock`** — pushes HA's current
+  wall time to the spa. Useful after a power cut or drift.
+- Config flow now asks for a **Name** at setup (default `Spa`), used as
+  the device name and entity-friendly-name prefix. Existing installs
+  can rename via the Options flow's new **Rename** step. Entity IDs and
+  unique IDs are unchanged.
+
+### Changed
+- `switch.<slug>_pause_connection` moved from **Configuration** to
+  **Diagnostic** — it's about integration health, not spa setup.
+  Existing installs are re-categorised on first startup after upgrade.
+- Entity display names shortened for readability (entity IDs unchanged
+  — automations unaffected):
+  - `Filter cycle N …` → `Filter N …` across the board
+  - `Circulation pump running` → `Circulation running`
+
+### Test harness
+- First tests land: `tests/` with `pytest-homeassistant-custom-component`,
+  covering capability-gates for aux / mister / wifi_state discovery.
+  New CI workflow `.github/workflows/tests.yml`.
+
 ## [0.2.0] – 2026-08-27
 
 Big refactor of the entity surface to mirror the design language of the

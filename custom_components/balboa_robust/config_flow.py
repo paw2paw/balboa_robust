@@ -14,7 +14,7 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     BooleanSelector,
@@ -42,8 +42,11 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+DEFAULT_NAME = "Spa"
+
 STEP_USER_SCHEMA = vol.Schema(
     {
+        vol.Required(CONF_NAME, default=DEFAULT_NAME): str,
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
     }
@@ -168,6 +171,7 @@ class BalboaRobustConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             host = user_input[CONF_HOST].strip()
             port = user_input[CONF_PORT]
+            name = (user_input.get(CONF_NAME) or DEFAULT_NAME).strip() or DEFAULT_NAME
             await self.async_set_unique_id(f"{host}:{port}")
             self._abort_if_unique_id_configured()
 
@@ -184,7 +188,7 @@ class BalboaRobustConfigFlow(ConfigFlow, domain=DOMAIN):
                         error,
                     )
                 return self.async_create_entry(
-                    title=f"Balboa Spa ({host})",
+                    title=name,
                     data={CONF_HOST: host, CONF_PORT: port},
                     options=dict(DEFAULTS),
                 )
@@ -201,15 +205,49 @@ class BalboaRobustConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class BalboaRobustOptionsFlow(OptionsFlow):
-    """Options: connection/backoff/heartbeat tunables, hot-applied."""
+    """Options: connection/backoff/heartbeat tunables, hot-applied.
+
+    Also exposes a rename step so existing installs (which were created
+    before we asked for a display name) can adopt a friendlier device
+    name without touching unique_ids.
+    """
 
     async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return self.async_show_menu(
+            step_id="init", menu_options=["settings", "rename"]
+        )
+
+    async def async_step_settings(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(data=user_input)
 
         return self.async_show_form(
-            step_id="init",
+            step_id="settings",
             data_schema=options_schema(dict(self.config_entry.options)),
+        )
+
+    async def async_step_rename(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            new_title = (user_input.get(CONF_NAME) or "").strip()
+            if new_title:
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, title=new_title
+                )
+            return self.async_create_entry(data=dict(self.config_entry.options))
+
+        return self.async_show_form(
+            step_id="rename",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_NAME, default=self.config_entry.title
+                    ): str,
+                }
+            ),
         )

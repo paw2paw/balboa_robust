@@ -36,18 +36,23 @@ async def async_setup_entry(
         if client is None:
             return
         entities: list[SpaControlSelect] = []
-        if getattr(client, "heat_mode", None) is not None:
-            entities.append(
-                SpaControlSelect(
-                    coordinator,
-                    attr="heat_mode",
-                    name="Heat mode",
-                    icon="mdi:thermostat",
-                    category=EntityCategory.CONFIG,
-                )
-            )
+        # Both heat_mode and temperature_range are properties that raise
+        # IndexError when the underlying control isn't present, so we can't
+        # use getattr(..., None) alone.
         try:
-            if getattr(client, "temperature_range", None) is not None:
+            if client.heat_mode is not None:
+                entities.append(
+                    SpaControlSelect(
+                        coordinator,
+                        attr="heat_mode",
+                        name="Heat mode",
+                        icon="mdi:thermostat",
+                    )
+                )
+        except (IndexError, AttributeError):
+            pass
+        try:
+            if client.temperature_range is not None:
                 entities.append(
                     SpaControlSelect(
                         coordinator,
@@ -56,8 +61,7 @@ async def async_setup_entry(
                         icon="mdi:thermometer-lines",
                     )
                 )
-        except IndexError:
-            # temperature_range accessor raises if the control isn't present yet.
+        except (IndexError, AttributeError):
             pass
         if entities:
             _LOGGER.info("balboa_robust: discovered %d select entities", len(entities))
@@ -77,6 +81,7 @@ class SpaControlSelect(CoordinatorEntity[SpaCoordinator], SelectEntity):
         attr: str,
         name: str,
         icon: str,
+        category: EntityCategory | None = None,
     ) -> None:
         super().__init__(coordinator)
         self._attr = attr
@@ -85,6 +90,7 @@ class SpaControlSelect(CoordinatorEntity[SpaCoordinator], SelectEntity):
         self._attr_translation_key = attr
         self._attr_unique_id = f"{coordinator.entry.entry_id}_{attr}"
         self._attr_device_info = coordinator.device_info
+        self._attr_entity_category = category
 
     def _control(self) -> Any | None:
         client = self.coordinator.manager.client

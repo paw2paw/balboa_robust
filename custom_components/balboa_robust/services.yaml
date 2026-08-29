@@ -23,3 +23,18 @@ resume:
       selector:
         config_entry:
           integration: balboa_robust
+
+sync_spa_clock:
+  name: Sync spa clock
+  description: >-
+    Push Home Assistant's current wall time to the spa. Useful after a
+    power cut or if the spa's clock has drifted. Only affects spas that
+    are currently connected.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Optional. Limit to one spa; omit to sync all spas.
+      required: false
+      selector:
+        config_entry:
+          integration: balboa_robust

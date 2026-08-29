@@ -19,7 +19,7 @@ from homeassistant.const import (
     UnitOfElectricPotential,
     UnitOfTime,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -163,7 +163,76 @@ SPA_SENSORS: tuple[SpaClientSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda c: getattr(c, "voltage", None),
     ),
+    SpaClientSensorDescription(
+        key="spa_state",
+        translation_key="spa_state",
+        device_class=SensorDeviceClass.ENUM,
+        options=[
+            "running",
+            "initializing",
+            "hold_mode",
+            "ab_temps_on",
+            "test_mode",
+            "unknown",
+        ],
+        value_fn=lambda c: _enum_name(getattr(c, "state", None)),
+    ),
+    SpaClientSensorDescription(
+        key="spa_time",
+        translation_key="spa_time",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:clock-outline",
+        value_fn=lambda c: _spa_time_hhmm(c),
+    ),
+    SpaClientSensorDescription(
+        key="clock_offset",
+        translation_key="clock_offset",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+        value_fn=lambda c: _clock_offset_seconds(c),
+    ),
 )
+
+
+SPA_WIFI_STATE_OPTIONS = [
+    "ok",
+    "spa_not_communicating",
+    "startup",
+    "prime",
+    "hold",
+    "panel",
+]
+
+
+def _spa_time_hhmm(client: Any) -> str | None:
+    now = client.get_current_time()
+    if now is None:
+        return None
+    return now.strftime("%H:%M")
+
+
+def _clock_offset_seconds(client: Any) -> int | None:
+    spa_now = client.get_current_time()
+    if spa_now is None:
+        return None
+    return round((spa_now - datetime.now()).total_seconds())
+
+
+def _wifi_state_value(client: Any) -> str | None:
+    return _enum_name(getattr(client, "wifi_state", None))
+
+
+def _filter_duration_minutes(client: Any, index: int) -> int | None:
+    duration = getattr(client, f"filter_cycle_{index}_duration", None)
+    if duration is None:
+        return None
+    total = duration.total_seconds()
+    if total <= 0:
+        return None
+    return int(total // 60)
 
 
 async def async_setup_entry(
@@ -178,6 +247,47 @@ async def async_setup_entry(
     async_add_entities(
         SpaClientSensor(coordinator, description) for description in SPA_SENSORS
     )
+
+    @callback
+    def _discover() -> None:
+        client = coordinator.manager.client
+        if client is None:
+            return
+        entities: list[SpaClientSensor] = []
+        if getattr(client, "wifi_state", None) is not None:
+            entities.append(
+                SpaClientSensor(
+                    coordinator,
+                    SpaClientSensorDescription(
+                        key="wifi_state",
+                        translation_key="wifi_state",
+                        entity_category=EntityCategory.DIAGNOSTIC,
+                        device_class=SensorDeviceClass.ENUM,
+                        options=SPA_WIFI_STATE_OPTIONS,
+                        value_fn=_wifi_state_value,
+                    ),
+                )
+            )
+        for index in (1, 2):
+            if _filter_duration_minutes(client, index) is not None:
+                entities.append(
+                    SpaClientSensor(
+                        coordinator,
+                        SpaClientSensorDescription(
+                            key=f"filter_{index}_duration",
+                            translation_key=f"filter_{index}_duration",
+                            native_unit_of_measurement=UnitOfTime.MINUTES,
+                            device_class=SensorDeviceClass.DURATION,
+                            state_class=SensorStateClass.MEASUREMENT,
+                            suggested_display_precision=0,
+                            value_fn=lambda c, i=index: _filter_duration_minutes(c, i),
+                        ),
+                    )
+                )
+        if entities:
+            async_add_entities(entities)
+
+    coordinator.on_first_config_loaded(_discover)
 
 
 class SpaDiagnosticSensor(CoordinatorEntity[SpaCoordinator], SensorEntity):

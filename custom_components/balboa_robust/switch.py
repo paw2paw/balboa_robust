@@ -7,7 +7,7 @@ from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -24,9 +24,20 @@ async def async_setup_entry(
 ) -> None:
     coordinator = entry.runtime_data
     async_add_entities([SpaPauseSwitch(coordinator), SpaAllPumpsSwitch(coordinator)])
-    coordinator.on_first_config_loaded(
-        lambda: async_add_entities([SpaFilterCycle2EnabledSwitch(coordinator)])
-    )
+
+    @callback
+    def _discover() -> None:
+        client = coordinator.manager.client
+        if client is None:
+            return
+        entities: list[SwitchEntity] = [SpaFilterCycle2EnabledSwitch(coordinator)]
+        for index in range(len(getattr(client, "aux", []) or [])):
+            entities.append(SpaControlSwitch(coordinator, "aux", index))
+        for index in range(len(getattr(client, "misters", []) or [])):
+            entities.append(SpaControlSwitch(coordinator, "mister", index))
+        async_add_entities(entities)
+
+    coordinator.on_first_config_loaded(_discover)
 
 
 class SpaPauseSwitch(CoordinatorEntity[SpaCoordinator], SwitchEntity):
@@ -37,7 +48,7 @@ class SpaPauseSwitch(CoordinatorEntity[SpaCoordinator], SwitchEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "pause"
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:pause-octagon"
 
     def __init__(self, coordinator: SpaCoordinator) -> None:
@@ -159,3 +170,60 @@ class SpaFilterCycle2EnabledSwitch(
         if client is None:
             return
         await client.configure_filter_cycle(2, enabled=False)
+
+
+class SpaControlSwitch(CoordinatorEntity[SpaCoordinator], SwitchEntity):
+    """Simple on/off wrapper around an indexed SpaControl (aux, mister)."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator: SpaCoordinator, kind: str, index: int) -> None:
+        super().__init__(coordinator)
+        self._kind = kind  # "aux" | "mister"
+        self._index = index
+        self._attr_translation_key = f"{kind}_n"
+        self._attr_translation_placeholders = {"index": str(index + 1)}
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_{kind}_{index}"
+        self._attr_device_info = coordinator.device_info
+
+    def _controls(self) -> list[Any]:
+        client = self.coordinator.manager.client
+        if client is None:
+            return []
+        attr = "aux" if self._kind == "aux" else "misters"
+        return list(getattr(client, attr, []) or [])
+
+    def _control(self) -> Any | None:
+        controls = self._controls()
+        if self._index >= len(controls):
+            return None
+        return controls[self._index]
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.manager.connected and self._control() is not None
+
+    @property
+    def is_on(self) -> bool | None:
+        control = self._control()
+        if control is None:
+            return None
+        value = getattr(control.state, "value", None)
+        return value not in (None, 0)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        control = self._control()
+        if control is None:
+            return
+        non_off = [opt for opt in control.options if getattr(opt, "value", 0) != 0]
+        if non_off:
+            await control.set_state(non_off[-1])
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        control = self._control()
+        if control is None:
+            return
+        for opt in control.options:
+            if getattr(opt, "value", None) == 0:
+                await control.set_state(opt)
+                return

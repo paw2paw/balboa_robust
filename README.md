@@ -123,24 +123,24 @@ Layout:
 
 | Section | What's in it |
 |---|---|
-| Main | Thermostat + LOW / HIGH temperature range |
-| Pumps & light | All-pumps master, each pump with speed picker, light |
+| Main | Thermostat, LOW / HIGH temperature range, Ready / Rest heat mode |
+| Pumps & light | All-pumps master, each pump with speed picker, light, optional aux/mister switches |
 | Filter cycles | Cycle 1 & 2 running, editable start/end times, cycle 2 enable |
-| Status | Reachable, heat state, heat mode, pause switch |
-| Connection health | Connection state, uptime %, latency, counters, 24 h history graph |
+| Status | Reachable, heat state, spa state |
+| Diagnostic | Pause switch, connection health, Wi-Fi state, spa time / clock offset |
 | Fault log | Native HA event log for spa faults |
+| Services | `balboa_robust.pause`, `balboa_robust.resume`, `balboa_robust.sync_spa_clock` |
 
 ## Entities
 
-Fresh install of 0.2.0 registers:
+Fresh install of 0.3.0 registers:
 
 | Section on device page | Entities |
 |---|---|
-| **Controls** | `climate.<slug>`, `fan.<slug>_pump_N`, `switch.<slug>_all_pumps`, `light.<slug>_light_N`, `select.<slug>_temperature_range` |
-| **Configuration** | `select.<slug>_heat_mode`, `switch.<slug>_pause_connection`, `switch.<slug>_filter_cycle_2_enabled`, `time.<slug>_filter_cycle_{1,2}_{start,end}` |
-| **Sensors** | `binary_sensor.<slug>_reachable`, `binary_sensor.<slug>_filter_cycle_{1,2}_running`, `binary_sensor.<slug>_circulation_pump_running`, `sensor.<slug>_heat_state` |
-| **Diagnostic** | `sensor.<slug>_voltage`, `sensor.<slug>_connection_state`, `sensor.<slug>_connect_latency`, `sensor.<slug>_successful_connects`, `sensor.<slug>_failed_connects`, `sensor.<slug>_connections_lost`, `sensor.<slug>_current_uptime`, `sensor.<slug>_current_downtime`, `sensor.<slug>_uptime_rolling` |
-| **Events** | `event.<slug>_fault` |
+| **Controls** | `climate.<slug>`, `select.<slug>_temperature_range`, `select.<slug>_heat_mode`, `fan.<slug>_pump_N`, `fan.<slug>_blower_N`, `light.<slug>_light_N`, `switch.<slug>_aux_N` *(if present)*, `switch.<slug>_mister_N` *(if present)*, `switch.<slug>_all_pumps` |
+| **Sensors** | `binary_sensor.<slug>_reachable`, `sensor.<slug>_heat_state`, `sensor.<slug>_spa_state`, `sensor.<slug>_voltage`, `binary_sensor.<slug>_circulation_running`, `event.<slug>_fault`, `binary_sensor.<slug>_filter_{1,2}_running`, `sensor.<slug>_filter_{1,2}_duration` *(if configured)* |
+| **Configuration** | `switch.<slug>_filter_2_enabled`, `time.<slug>_filter_cycle_{1,2}_{start,end}` |
+| **Diagnostic** | `sensor.<slug>_spa_time`, `sensor.<slug>_wifi_state`, `sensor.<slug>_clock_offset`, `binary_sensor.<slug>_reachable`, `sensor.<slug>_connection_state`, `sensor.<slug>_connect_latency`, `sensor.<slug>_connects_ok`, `sensor.<slug>_connects_failed`, `sensor.<slug>_connections_lost`, `sensor.<slug>_current_uptime`, `sensor.<slug>_current_downtime`, `sensor.<slug>_uptime_ratio`, `sensor.<slug>_current_backoff`, `sensor.<slug>_next_attempt_at`, `switch.<slug>_pause_connection` |
 
 ## History, charts & long-term statistics
 
@@ -208,6 +208,12 @@ service: balboa_robust.resume     # afterwards
 ```
 
 Or use the **Pause connection** switch on the device page.
+
+Push HA wall time to the spa (e.g. after a power cut):
+
+```yaml
+service: balboa_robust.sync_spa_clock
+```
 
 ## Local development
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 import voluptuous as vol
@@ -30,6 +31,7 @@ from .const import (
     DOMAIN,
     SERVICE_PAUSE,
     SERVICE_RESUME,
+    SERVICE_SYNC_SPA_CLOCK,
 )
 from .coordinator import SpaCoordinator
 
@@ -97,6 +99,7 @@ _OBSOLETE_ENTITIES: set[tuple[str, str]] = {
 _RECATEGORIZE: dict[tuple[str, str], EntityCategory | None] = {
     ("sensor", "heat_state"): None,  # v0.2.5: was DIAGNOSTIC, now Sensors
     ("sensor", "voltage"): None,     # v0.2.5: was DIAGNOSTIC, now Sensors
+    ("switch", "pause"): EntityCategory.DIAGNOSTIC,  # was CONFIG
 }
 
 
@@ -189,7 +192,7 @@ async def _options_updated(
 
 
 def _register_services(hass: HomeAssistant) -> None:
-    """Register pause/resume services (idempotent)."""
+    """Register pause/resume/sync-clock services (idempotent)."""
     if hass.services.has_service(DOMAIN, SERVICE_PAUSE):
         return
 
@@ -213,5 +216,22 @@ def _register_services(hass: HomeAssistant) -> None:
         for manager in _managers(call):
             await manager.resume()
 
+    async def _sync_clock(call: ServiceCall) -> None:
+        now = datetime.now()
+        for manager in _managers(call):
+            client = manager.client
+            if client is None or not manager.connected:
+                _LOGGER.warning(
+                    "sync_spa_clock: skipping %s (not connected)", manager
+                )
+                continue
+            try:
+                await client.set_time(now.hour, now.minute)
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("sync_spa_clock failed")
+
     hass.services.async_register(DOMAIN, SERVICE_PAUSE, _pause, SERVICE_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_RESUME, _resume, SERVICE_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, SERVICE_SYNC_SPA_CLOCK, _sync_clock, SERVICE_SCHEMA
+    )

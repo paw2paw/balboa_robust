@@ -30,5 +30,6 @@ DEFAULTS = {
 
 SERVICE_PAUSE = "pause"
 SERVICE_RESUME = "resume"
+SERVICE_SYNC_SPA_CLOCK = "sync_spa_clock"
 
 DEFAULT_PORT = 4257

@@ -4,10 +4,12 @@
       "user": {
         "title": "Connect to your Balboa spa",
         "data": {
+          "name": "Name",
           "host": "Host (IP address)",
           "port": "Port"
         },
         "data_description": {
+          "name": "Device name (also entity prefix, e.g. 'Spa Pump 1'). Keep it short.",
           "host": "The spa WiFi module IP, e.g. 192.168.1.100",
           "port": "Balboa protocol port (default 4257)"
         },
@@ -27,6 +29,20 @@
   "options": {
     "step": {
       "init": {
+        "title": "Balboa Robust options",
+        "menu_options": {
+          "settings": "Connection resilience settings",
+          "rename": "Rename this spa"
+        }
+      },
+      "rename": {
+        "title": "Rename this spa",
+        "description": "Sets the device name and the prefix on every entity's friendly name. Does not affect entity_ids or automations.",
+        "data": {
+          "name": "Name"
+        }
+      },
+      "settings": {
         "title": "Connection resilience settings",
         "data": {
           "connect_timeout": "TCP connect timeout (s)",
@@ -60,9 +76,9 @@
   "entity": {
     "binary_sensor": {
       "reachable": { "name": "Reachable" },
-      "filter_cycle_1_running": { "name": "Filter cycle 1 running" },
-      "filter_cycle_2_running": { "name": "Filter cycle 2 running" },
-      "circulation_pump_running": { "name": "Circulation pump running" }
+      "filter_cycle_1_running": { "name": "Filter 1 running" },
+      "filter_cycle_2_running": { "name": "Filter 2 running" },
+      "circulation_pump_running": { "name": "Circulation running" }
     },
     "climate": {
       "spa": { "name": "Spa" }
@@ -70,15 +86,17 @@
     "switch": {
       "pause": { "name": "Pause connection" },
       "all_pumps": { "name": "All pumps" },
-      "filter_cycle_2_enabled": { "name": "Filter cycle 2 enabled" }
+      "filter_cycle_2_enabled": { "name": "Filter 2 enabled" },
+      "aux_n": { "name": "Aux {index}" },
+      "mister_n": { "name": "Mister {index}" }
     },
     "select": {
       "heat_mode": { "name": "Heat mode" },
       "temperature_range": { "name": "Temperature range" }
     },
     "time": {
-      "filter_cycle_start": { "name": "Filter cycle {index} start" },
-      "filter_cycle_end": { "name": "Filter cycle {index} end" }
+      "filter_cycle_start": { "name": "Filter {index} start" },
+      "filter_cycle_end": { "name": "Filter {index} end" }
     },
     "event": {
       "fault": { "name": "Fault" }
@@ -95,7 +113,13 @@
       "current_backoff": { "name": "Current backoff delay" },
       "next_attempt_at": { "name": "Next connection attempt" },
       "heat_state": { "name": "Heat state" },
-      "voltage": { "name": "Line voltage" }
+      "voltage": { "name": "Line voltage" },
+      "spa_state": { "name": "Spa state" },
+      "spa_time": { "name": "Spa time" },
+      "clock_offset": { "name": "Clock offset" },
+      "wifi_state": { "name": "Wi-Fi state" },
+      "filter_1_duration": { "name": "Filter 1 duration" },
+      "filter_2_duration": { "name": "Filter 2 duration" }
     }
   }
 }
