@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="custom_components/balboa_robust/brand/logo@2x.png" alt="Balboa Spa (Robust)" width="480">
+  <img src="https://raw.githubusercontent.com/paw2paw/balboa_robust/main/custom_components/balboa_robust/brand/logo%402x.png" alt="Balboa Spa (Robust)" width="480">
 </p>
 
 <p align="center">
