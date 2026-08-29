@@ -185,7 +185,7 @@ views:
             features:
               - type: select-options
           - type: tile
-            entity: sensor.YOUR_SPA_voltage
+            entity: sensor.YOUR_SPA_line_voltage
             name: Line voltage
 
       # --- Filter cycle 1 --------------------------------------------------
@@ -270,7 +270,7 @@ views:
             heading_style: title
             icon: mdi:chart-timeline-variant
           - type: gauge
-            entity: sensor.YOUR_SPA_uptime_ratio
+            entity: sensor.YOUR_SPA_uptime_rolling
             name: Uptime (rolling %)
             min: 0
             max: 100
@@ -294,11 +294,11 @@ views:
             name: Current downtime
             vertical: true
           - type: tile
-            entity: sensor.YOUR_SPA_current_backoff
+            entity: sensor.YOUR_SPA_current_backoff_delay
             name: Current backoff
             vertical: true
           - type: tile
-            entity: sensor.YOUR_SPA_next_attempt_at
+            entity: sensor.YOUR_SPA_next_connection_attempt
             name: Next attempt
             vertical: true
 
@@ -310,11 +310,11 @@ views:
             heading_style: title
             icon: mdi:counter
           - type: tile
-            entity: sensor.YOUR_SPA_connects_ok
+            entity: sensor.YOUR_SPA_successful_connects
             name: Connects OK
             color: green
           - type: tile
-            entity: sensor.YOUR_SPA_connects_failed
+            entity: sensor.YOUR_SPA_failed_connects
             name: Connects failed
             color: red
           - type: tile
@@ -408,7 +408,7 @@ views:
               - min
               - max
             entities:
-              - sensor.YOUR_SPA_uptime_ratio
+              - sensor.YOUR_SPA_uptime_rolling
           - type: statistics-graph
             title: Connect latency (ms)
             chart_type: line
