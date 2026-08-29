@@ -43,31 +43,6 @@ views:
     max_columns: 3
     dense_section_placement: true
     sections:
-      # --- Fault alert (only renders when a fault is recent) --------------
-      - type: grid
-        column_span: 3
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: event.YOUR_SPA_fault
-                state_not: unavailable
-              - condition: state
-                entity: event.YOUR_SPA_fault
-                state_not: unknown
-            card:
-              type: markdown
-              content: >
-                ## ⚠ Spa fault active
-
-                **Latest event:** {{
-                as_timestamp(states.event.YOUR_SPA_fault.state) |
-                timestamp_custom('%b %d %H:%M') }}
-                &nbsp; · &nbsp; **Type:** `{{
-                state_attr('event.YOUR_SPA_fault', 'event_type') }}`
-
-                See the **Health** view for the full fault log.
-
       # --- Hero: climate + at-a-glance status ------------------------------
       - type: grid
         column_span: 2
@@ -154,6 +129,31 @@ views:
             entity: binary_sensor.YOUR_SPA_circulation_pump_running
             name: Circulation
             vertical: true
+
+      # --- Last spa error (only renders when a fault is recorded) ---------
+      - type: grid
+        column_span: 3
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: event.YOUR_SPA_fault
+                state_not: unavailable
+              - condition: state
+                entity: event.YOUR_SPA_fault
+                state_not: unknown
+            card:
+              type: markdown
+              content: >
+                ### Last Spa Error
+
+                **When:** {{
+                as_timestamp(states.event.YOUR_SPA_fault.state) |
+                timestamp_custom('%b %d %H:%M') }}
+                &nbsp; · &nbsp; **Type:** `{{
+                state_attr('event.YOUR_SPA_fault', 'event_type') }}`
+
+                See the **Health** view for the full fault log.
 
   # ==========================================================================
   # VIEW 2: SETUP  (schedules + modes + optional accessories)
