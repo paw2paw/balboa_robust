@@ -55,10 +55,12 @@ views:
             entity: climate.YOUR_SPA
             features:
               - type: climate-hvac-modes
+          # color: state → green when on (connected), red/grey when off.
+          # No icon override so HA uses the connectivity device_class
+          # defaults (lan-connect / lan-disconnect) automatically.
           - type: tile
             entity: binary_sensor.YOUR_SPA_reachable
-            color: green
-            icon: mdi:lan-connect
+            color: state
             vertical: true
             state_content:
               - state
@@ -130,7 +132,7 @@ views:
             name: Circulation
             vertical: true
 
-      # --- Last spa error (only renders when a fault is recorded) ---------
+      # --- Last spa fault (only renders when a fault has been recorded) ---
       - type: grid
         column_span: 3
         cards:
@@ -144,14 +146,12 @@ views:
                 state_not: unknown
             card:
               type: markdown
-              content: >
-                ### Last Spa Error
+              content: |
+                ### Last Spa Fault Report
 
-                **When:** {{
-                as_timestamp(states.event.YOUR_SPA_fault.state) |
-                timestamp_custom('%b %d %H:%M') }}
-                &nbsp; · &nbsp; **Type:** `{{
-                state_attr('event.YOUR_SPA_fault', 'event_type') }}`
+                **When:** {{ as_timestamp(states.event.YOUR_SPA_fault.state) | timestamp_custom('%a %b %d, %H:%M', true) }}
+
+                **Fault:** `{{ state_attr('event.YOUR_SPA_fault', 'event_type') }}`
 
                 See the **Health** view for the full fault log.
 
@@ -272,12 +272,14 @@ views:
           # Dynamic window label — reads the `window_human` attribute
           # exposed by the uptime sensor (added in 0.3.1). Update the
           # rolling window under Settings -> Devices -> Balboa Spa (Robust)
-          # -> Configure; the label follows automatically.
+          # -> Configure; the label follows automatically. Centered via
+          # inline HTML because HA's markdown card doesn't have a
+          # native alignment prop.
           - type: markdown
             content: >
-              ### Uptime — last {{
+              <h3 align="center">Uptime — last {{
               state_attr('sensor.YOUR_SPA_uptime_rolling', 'window_human')
-              or '1 h' }} (rolling)
+              or '1 h' }} (rolling)</h3>
           - type: gauge
             entity: sensor.YOUR_SPA_uptime_rolling
             min: 0
