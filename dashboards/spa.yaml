@@ -1,11 +1,26 @@
 # =============================================================================
-# Balboa Spa (Robust) — sample dashboard  (v0.3.0)
+# Balboa Spa (Robust) — sample dashboard  (v0.3.5)
 # =============================================================================
 #
 # Three views:
 #   1. Spa       — daily use: thermostat, pumps, lights, live status, fault alert
 #   2. Setup     — filter cycles, heat mode, temperature range, aux/mister
-#   3. Health    — connection diagnostics, spa diagnostics, history, sync clock
+#   3. Health    — connection health + counters + spa diagnostics + history
+#
+# Entity slugs match a real install (verified via `Developer Tools → Template`
+# dumping `states | selectattr('entity_id','search','<your_slug>') | list`).
+#
+# Two entities may need per-install pruning:
+#   • sensor.YOUR_SPA_line_voltage and sensor.YOUR_SPA_wi_fi_state — only
+#     some Balboa modules report these. If yours doesn't, the entity registers
+#     but stays "Unavailable" forever. Delete those tiles if that's you.
+#
+# Historical note: v<0.3.5 installs registered climate as
+# `climate.<slug>_<slug>` (device name repeated) or `climate.<slug>` because
+# `_attr_name = None`. v0.3.5 renames the entity to
+# `climate.<slug>_thermostat` via automatic migration in __init__.py the
+# first time the integration reloads. If your climate tile shows
+# "Entity not found" on a fresh paste, reload the integration to trigger it.
 #
 # How to use:
 #   1. Settings → Dashboards → Add Dashboard → New dashboard from scratch
@@ -42,6 +57,34 @@ views:
     type: sections
     max_columns: 3
     dense_section_placement: true
+    badges: &spa_status_badges
+      # Two mutually-exclusive badges gated by `reachable`. Green when the
+      # link is healthy for at least `stable_for` seconds; red otherwise.
+      - type: entity
+        entity: binary_sensor.YOUR_SPA_reachable
+        name: Connected
+        color: green
+        icon: mdi:lan-connect
+        show_entity_picture: false
+        tap_action:
+          action: more-info
+        visibility:
+          - condition: state
+            entity: binary_sensor.YOUR_SPA_reachable
+            state: "on"
+      - type: entity
+        entity: binary_sensor.YOUR_SPA_reachable
+        name: Disconnected
+        color: red
+        icon: mdi:lan-disconnect
+        show_entity_picture: false
+        tap_action:
+          action: navigate
+          navigation_path: /health
+        visibility:
+          - condition: state
+            entity: binary_sensor.YOUR_SPA_reachable
+            state: "off"
     sections:
       # --- Hero: climate + at-a-glance status ------------------------------
       - type: grid
@@ -52,7 +95,7 @@ views:
             heading_style: title
             icon: mdi:hot-tub
           - type: thermostat
-            entity: climate.YOUR_SPA
+            entity: climate.YOUR_SPA_thermostat
             features:
               - type: climate-hvac-modes
           # color: state → green when on (connected), red/grey when off.
@@ -74,11 +117,11 @@ views:
             name: Heat state
             vertical: true
 
-      # --- Pumps + lights (daily-use only) ---------------------------------
+      # --- Pumps + blower + light (daily-use only) -------------------------
       - type: grid
         cards:
           - type: heading
-            heading: Pumps & light
+            heading: Pumps, blower & light
             heading_style: title
             icon: mdi:pump
           - type: tile
@@ -164,6 +207,7 @@ views:
     type: sections
     max_columns: 3
     dense_section_placement: true
+    badges: *spa_status_badges
     sections:
       # --- Heat & temperature range ----------------------------------------
       - type: grid
@@ -184,6 +228,9 @@ views:
             icon: mdi:thermometer-lines
             features:
               - type: select-options
+          # OPTIONAL — most spa modules do not report line voltage.
+          # sensor.YOUR_SPA_line_voltage exists but stays Unavailable in that
+          # case. Delete this tile if yours is always Unavailable.
           - type: tile
             entity: sensor.YOUR_SPA_line_voltage
             name: Line voltage
@@ -260,6 +307,7 @@ views:
     type: sections
     max_columns: 3
     dense_section_placement: true
+    badges: *spa_status_badges
     sections:
       # --- Uptime hero: gauge + rolling% + current state ------------------
       - type: grid
@@ -310,11 +358,11 @@ views:
             name: Next attempt
             vertical: true
 
-      # --- Cumulative connect counters -------------------------------------
+      # --- Counters + pause action -----------------------------------------
       - type: grid
         cards:
           - type: heading
-            heading: Counters (since restart)
+            heading: Counters & actions
             heading_style: title
             icon: mdi:counter
           - type: tile
@@ -329,8 +377,14 @@ views:
             entity: sensor.YOUR_SPA_connections_lost
             name: Connections lost
             color: red
+          - type: tile
+            entity: switch.YOUR_SPA_pause_connection
+            name: Pause connection
+            color: orange
 
       # --- Spa-native diagnostics ------------------------------------------
+      # The clock_offset tile shows current drift AND syncs on tap — one
+      # entity, one job, no duplicate buttons.
       - type: grid
         cards:
           - type: heading
@@ -343,13 +397,7 @@ views:
             icon: mdi:clock-outline
           - type: tile
             entity: sensor.YOUR_SPA_clock_offset
-            name: Clock offset
-            icon: mdi:clock-alert-outline
-          # Tap this tile to push HA's wall time to the spa. The tile shows
-          # current drift so it doubles as a "how far off am I" gauge.
-          - type: tile
-            entity: sensor.YOUR_SPA_clock_offset
-            name: Sync spa clock (tap)
+            name: Clock offset (tap to sync)
             icon: mdi:clock-check-outline
             color: primary
             tap_action:
@@ -359,29 +407,9 @@ views:
               action: more-info
           # OPTIONAL — only present when the module reports it
           - type: tile
-            entity: sensor.YOUR_SPA_wifi_state
+            entity: sensor.YOUR_SPA_wi_fi_state
             name: Wi-Fi state
             icon: mdi:wifi
-
-      # --- Admin actions ---------------------------------------------------
-      - type: grid
-        cards:
-          - type: heading
-            heading: Admin
-            heading_style: title
-            icon: mdi:tools
-          - type: tile
-            entity: switch.YOUR_SPA_pause_connection
-            name: Pause connection
-            color: orange
-          - type: tile
-            entity: sensor.YOUR_SPA_clock_offset
-            name: Sync spa clock (HA → spa)
-            icon: mdi:clock-check-outline
-            color: primary
-            tap_action:
-              action: perform-action
-              perform_action: balboa_robust.sync_spa_clock
 
       # --- Live history ----------------------------------------------------
       - type: grid
@@ -395,7 +423,7 @@ views:
             entities:
               - sensor.YOUR_SPA_connection_state
               - binary_sensor.YOUR_SPA_reachable
-              - sensor.YOUR_SPA_wifi_state
+              - sensor.YOUR_SPA_wi_fi_state # OPTIONAL — delete if no wifi_state entity
             hours_to_show: 24
 
       # --- Long-term stats -------------------------------------------------
@@ -429,6 +457,8 @@ views:
               - sensor.YOUR_SPA_connect_latency
 
       # --- Fault log -------------------------------------------------------
+      # Standalone event tile removed — the logbook below is authoritative and
+      # the Spa view already carries a conditional banner for recent faults.
       - type: grid
         column_span: 3
         cards:
@@ -436,8 +466,6 @@ views:
             heading: Fault log
             heading_style: title
             icon: mdi:alert-circle-outline
-          - type: tile
-            entity: event.YOUR_SPA_fault
           - type: logbook
             entities:
               - event.YOUR_SPA_fault

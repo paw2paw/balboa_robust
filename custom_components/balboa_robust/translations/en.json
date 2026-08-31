@@ -81,7 +81,7 @@
       "circulation_pump_running": { "name": "Circulation running" }
     },
     "climate": {
-      "spa": { "name": "Spa" }
+      "thermostat": { "name": "Thermostat" }
     },
     "switch": {
       "pause": { "name": "Pause connection" },

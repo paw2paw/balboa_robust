@@ -13,6 +13,7 @@ from homeassistant.const import CONF_HOST, CONF_PORT, EntityCategory, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import slugify
 
 from .connection import ManagerConfig, SpaConnectionManager
 from .const import (
@@ -151,12 +152,45 @@ def _migrate_entity_categories(
         reg.async_update_entity(entity_id, entity_category=target)
 
 
+@callback
+def _migrate_climate_entity_id(
+    hass: HomeAssistant, entry: BalboaRobustConfigEntry
+) -> None:
+    """Rename the climate entity created before v0.3.5.
+
+    v0.3.5 sets `_attr_name = "Thermostat"`, giving new installs the clean
+    `climate.<device>_thermostat` slug. Earlier releases had
+    `_attr_name = None` which HA turned into `climate.<device>_<device>`
+    (or `climate.<device>` in some configurations). Only touched when the
+    user hasn't manually renamed the entity — respects `has_entity_name`.
+    """
+    reg = er.async_get(hass)
+    unique = f"{entry.entry_id}_climate"
+    existing = reg.async_get_entity_id("climate", DOMAIN, unique)
+    if existing is None:
+        return
+    device_slug = slugify(entry.title or entry.data.get(CONF_HOST, ""))
+    if not device_slug:
+        return
+    target = f"climate.{device_slug}_thermostat"
+    if existing == target:
+        return
+    if reg.async_get(target) is not None:
+        _LOGGER.warning(
+            "Cannot migrate %s -> %s: target already exists", existing, target
+        )
+        return
+    _LOGGER.info("Migrating climate entity_id: %s -> %s", existing, target)
+    reg.async_update_entity(existing, new_entity_id=target)
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: BalboaRobustConfigEntry
 ) -> bool:
     """Set up a spa from a config entry."""
     _remove_obsolete_entities(hass, entry)
     _migrate_entity_categories(hass, entry)
+    _migrate_climate_entity_id(hass, entry)
     manager = SpaConnectionManager(
         host=entry.data[CONF_HOST],
         port=entry.data[CONF_PORT],

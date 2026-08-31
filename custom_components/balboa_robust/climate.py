@@ -34,11 +34,11 @@ class SpaClimate(CoordinatorEntity[SpaCoordinator], ClimateEntity):
     """Thermostat for the spa heater. Unavailable while disconnected/paused."""
 
     _attr_has_entity_name = True
-    _attr_name = None  # use device name
+    _attr_name = "Thermostat"
     _attr_hvac_modes = [HVACMode.HEAT]
     _attr_hvac_mode = HVACMode.HEAT
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
-    _attr_translation_key = "spa"
+    _attr_translation_key = "thermostat"
 
     def __init__(self, coordinator: SpaCoordinator) -> None:
         super().__init__(coordinator)

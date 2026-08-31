@@ -106,7 +106,9 @@ will break silently — the CHANGELOG has a mapping table plus a
 ## Dashboard
 
 A ready-to-paste Sections-style dashboard lives at
-[`dashboards/spa.yaml`](dashboards/spa.yaml). Install:
+[`dashboards/spa.yaml`](dashboards/spa.yaml) — three views (Spa / Setup /
+Health), header status badge that flips green/red on reachability, no HACS
+card dependencies. Install:
 
 1. Settings → Dashboards → **+ Add Dashboard** → "New dashboard from
    scratch".
@@ -115,32 +117,58 @@ A ready-to-paste Sections-style dashboard lives at
 3. Paste the contents of `dashboards/spa.yaml`. Save.
 4. **Search-and-replace `YOUR_SPA` with your entity slug.** To find
    your slug: Developer Tools → States → filter by "balboa" — an
-   entity like `climate.garden_spa` means your slug is `garden_spa`;
-   one named `climate.balboa_spa_192_168_4_119` means your slug is
-   `balboa_spa_192_168_4_119`.
+   entity like `binary_sensor.garden_spa_reachable` means your slug
+   is `garden_spa`.
+
+Faster on macOS — sub the slug and copy in one command, paste straight
+into the raw editor:
+
+```
+sed 's/YOUR_SPA/<your_slug>/g' dashboards/spa.yaml | pbcopy
+```
+
+**Missing entities?** Not every Balboa module reports every field. Common
+ones to prune if they stay `Unavailable`:
+
+| Tile | Delete if... |
+|---|---|
+| `sensor.<slug>_line_voltage` | Module doesn't report voltage (most residential don't) |
+| `sensor.<slug>_wi_fi_state` | No `wi_fi_state` entity in Dev Tools → States |
+| `fan.<slug>_blower_1` | Spa has no blower |
+| `switch.<slug>_aux_1` / `_2` | Spa has no aux outputs |
+| `switch.<slug>_mister_1` | Spa has no mister |
+
+`dashboards/spa_hot_tub.yaml` in this repo is a real-install example
+(single-pump spa, no blower/aux/mister/voltage/wifi) — useful reference
+for what to keep and what to cut on a similar module.
 
 Layout:
 
-| Section | What's in it |
+| View | Sections |
 |---|---|
-| Main | Thermostat, LOW / HIGH temperature range, Ready / Rest heat mode |
-| Pumps & light | All-pumps master, each pump with speed picker, light, optional aux/mister switches |
-| Filter cycles | Cycle 1 & 2 running, editable start/end times, cycle 2 enable |
-| Status | Reachable, heat state, spa state |
-| Diagnostic | Pause switch, connection health, Wi-Fi state, spa time / clock offset |
-| Fault log | Native HA event log for spa faults |
-| Services | `balboa_robust.pause`, `balboa_robust.resume`, `balboa_robust.sync_spa_clock` |
+| Spa | Hot tub (thermostat + status), Pumps blower & light, Filter cycles, conditional Last-Fault banner |
+| Setup | Heat & temperature range, Filter cycle 1, Filter cycle 2, Aux & mister (optional) |
+| Health | Connection health (gauge + uptime + backoff), Counters & actions (+ pause), Spa diagnostics (time + clock-offset-with-tap-to-sync), Live history 24 h, Long-term stats 7 d, Fault log |
+
+Services usable from card `tap_action`: `balboa_robust.pause`,
+`balboa_robust.resume`, `balboa_robust.sync_spa_clock`.
 
 ## Entities
 
-Fresh install of 0.3.0 registers:
+Fresh install of 0.3.5+ registers (verified against a real device registry —
+HA generates entity_ids from the slugified friendly name, not the code's
+`key`, so a few of these differ from what you might guess):
 
 | Section on device page | Entities |
 |---|---|
-| **Controls** | `climate.<slug>`, `select.<slug>_temperature_range`, `select.<slug>_heat_mode`, `fan.<slug>_pump_N`, `fan.<slug>_blower_N`, `light.<slug>_light_N`, `switch.<slug>_aux_N` *(if present)*, `switch.<slug>_mister_N` *(if present)*, `switch.<slug>_all_pumps` |
-| **Sensors** | `binary_sensor.<slug>_reachable`, `sensor.<slug>_heat_state`, `sensor.<slug>_spa_state`, `sensor.<slug>_voltage`, `binary_sensor.<slug>_circulation_running`, `event.<slug>_fault`, `binary_sensor.<slug>_filter_{1,2}_running`, `sensor.<slug>_filter_{1,2}_duration` *(if configured)* |
-| **Configuration** | `switch.<slug>_filter_2_enabled`, `time.<slug>_filter_cycle_{1,2}_{start,end}` |
-| **Diagnostic** | `sensor.<slug>_spa_time`, `sensor.<slug>_wifi_state`, `sensor.<slug>_clock_offset`, `binary_sensor.<slug>_reachable`, `sensor.<slug>_connection_state`, `sensor.<slug>_connect_latency`, `sensor.<slug>_connects_ok`, `sensor.<slug>_connects_failed`, `sensor.<slug>_connections_lost`, `sensor.<slug>_current_uptime`, `sensor.<slug>_current_downtime`, `sensor.<slug>_uptime_ratio`, `sensor.<slug>_current_backoff`, `sensor.<slug>_next_attempt_at`, `switch.<slug>_pause_connection` |
+| **Controls** | `climate.<slug>_thermostat`, `select.<slug>_temperature_range`, `select.<slug>_heat_mode`, `fan.<slug>_pump_N`, `fan.<slug>_blower_N` *(if present)*, `light.<slug>_light_N`, `switch.<slug>_aux_N` *(if present)*, `switch.<slug>_mister_N` *(if present)*, `switch.<slug>_all_pumps` |
+| **Sensors** | `binary_sensor.<slug>_reachable`, `sensor.<slug>_heat_state`, `sensor.<slug>_spa_state`, `sensor.<slug>_line_voltage` *(only on modules that report it)*, `binary_sensor.<slug>_circulation_pump_running`, `event.<slug>_fault`, `binary_sensor.<slug>_filter_cycle_{1,2}_running`, `sensor.<slug>_filter_{1,2}_duration` *(if configured)* |
+| **Configuration** | `switch.<slug>_filter_cycle_2_enabled`, `time.<slug>_filter_cycle_{1,2}_{start,end}` |
+| **Diagnostic** | `sensor.<slug>_spa_time`, `sensor.<slug>_wi_fi_state` *(only on modules that report it)*, `sensor.<slug>_clock_offset`, `sensor.<slug>_connection_state`, `sensor.<slug>_connect_latency`, `sensor.<slug>_successful_connects`, `sensor.<slug>_failed_connects`, `sensor.<slug>_connections_lost`, `sensor.<slug>_current_uptime`, `sensor.<slug>_current_downtime`, `sensor.<slug>_uptime_rolling`, `sensor.<slug>_current_backoff_delay`, `sensor.<slug>_next_connection_attempt`, `switch.<slug>_pause_connection` |
+
+> Tip: to enumerate what your specific module registered, use *Developer
+> Tools → Template* with
+> `{{ states | selectattr('entity_id','search','<your_slug>') | map(attribute='entity_id') | list | sort }}`.
 
 ## History, charts & long-term statistics
 

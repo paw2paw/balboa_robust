@@ -26,3 +26,9 @@ soak/nohup.out
 
 # HA runtime artifacts
 *.log
+
+# Personal (install-specific) dashboards — the sample dashboards/spa.yaml
+# stays committed; personal copies with real device slugs / private
+# navigation paths do not
+dashboards/spa_hot_tub.yaml
+dashboards/overview_tub_view.yaml

@@ -10,6 +10,50 @@ exhibits stale-socket disconnects, 30-second silent windows, and
 overnight dead zones of 100 min+. Measured uptime on a real unit:
 **33.85 %**. See [README](README.md#why-this-exists) for the full story.
 
+## [0.3.5] – 2026-08-31
+
+Dashboard entity-slug audit + climate rename with auto-migration.
+
+### Changed
+- **Climate entity renamed.** `_attr_name` was `None`, which HA turned into
+  `climate.<slug>_<slug>` on some installs (device name repeated) or
+  `climate.<slug>` on others — either way, ugly and inconsistent. Now
+  `_attr_name = "Thermostat"` and `_attr_translation_key = "thermostat"`,
+  giving a clean `climate.<slug>_thermostat` on all installs.
+- Automatic `entity_id` migration runs on first load after upgrade:
+  `_migrate_climate_entity_id` in `__init__.py` finds any climate entity
+  registered under this config entry and renames it to
+  `climate.<device_slug>_thermostat`. Idempotent; skips if the target
+  already exists or the name matches.
+- Example dashboard `dashboards/spa.yaml`:
+  - All 41 entity references cross-checked against a real install
+    registry. Fixed the ones that regressed in 0.3.4 (which mistakenly
+    assumed HA used the translation_key rather than the resolved
+    friendly-name slug).
+  - Header `badges:` now show a conditional Connected (green) /
+    Disconnected (red) chip driven by `binary_sensor.<slug>_reachable`,
+    replicated across all 3 views via YAML anchor.
+  - Health view consolidated: `Admin` merged into `Counters & actions`,
+    duplicate sync-clock tiles collapsed to one (Spa diagnostics → tile
+    shows drift + syncs on tap), standalone fault event tile dropped
+    (logbook is authoritative).
+  - "Pumps & light" section header → "Pumps, blower & light".
+- Added `dashboards/spa_hot_tub.yaml` — worked example with a device
+  slug pre-substituted and the tiles for entities the module doesn't
+  report (blower, aux, mister, line voltage, Wi-Fi state) already
+  removed. Useful as a reference for other single-module installs.
+
+### Added
+- Docs: `sed 's/YOUR_SPA/<slug>/g' dashboards/spa.yaml | pbcopy`
+  one-liner recipe to skip the in-editor search-and-replace step.
+
+### Migration notes
+- Existing users: on next HA restart (or reloading the config entry),
+  the climate entity_id changes from `climate.<slug>_<slug>` (or
+  `climate.<slug>`) to `climate.<slug>_thermostat`. Update any
+  automations or dashboard cards that referenced the old ID. Nothing
+  else moves. Unique IDs are stable — history is preserved.
+
 ## [0.3.2] – 2026-08-29
 
 Dashboard-and-docs polish release. No code changes, no entity changes.
