@@ -180,6 +180,22 @@ def _migrate_climate_entity_id(
             "Cannot migrate %s -> %s: target already exists", existing, target
         )
         return
+    # Only auto-migrate from entity_ids we could have produced. Anything
+    # else was user-set (via HA UI or automation) and must be preserved.
+    known_old_ids = {
+        f"climate.{device_slug}",                # v<=0.2.x with _attr_name=None
+        f"climate.{device_slug}_{device_slug}",  # v<=0.3.4 with _attr_name=None
+        f"climate.{device_slug}_spa",            # v<=0.3.4 translation_key="spa"
+    }
+    if existing not in known_old_ids:
+        _LOGGER.info(
+            "Skipping climate migration for %s: entity_id doesn't match a "
+            "known auto-generated pattern (%s), assumed user-set. Rename "
+            "manually via HA UI if you want the new default.",
+            existing,
+            sorted(known_old_ids),
+        )
+        return
     _LOGGER.info("Migrating climate entity_id: %s -> %s", existing, target)
     reg.async_update_entity(existing, new_entity_id=target)
 

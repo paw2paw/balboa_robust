@@ -10,6 +10,19 @@ exhibits stale-socket disconnects, 30-second silent windows, and
 overnight dead zones of 100 min+. Measured uptime on a real unit:
 **33.85 %**. See [README](README.md#why-this-exists) for the full story.
 
+## [0.3.6] – 2026-08-31
+
+Follow-up to 0.3.5. Same feature set, one safety improvement.
+
+### Changed
+- `_migrate_climate_entity_id` in `__init__.py` now only renames climate
+  entities whose current entity_id matches one of the three
+  auto-generated patterns the integration could have produced
+  (`climate.<slug>`, `climate.<slug>_<slug>`, `climate.<slug>_spa`).
+  Anything else is presumed to be a user-set entity_id (via HA UI or
+  automation) and is left alone with an INFO log noting the skip.
+  Closes the "manual rename gets clobbered" edge case in 0.3.5.
+
 ## [0.3.5] – 2026-08-31
 
 Dashboard entity-slug audit + climate rename with auto-migration.
